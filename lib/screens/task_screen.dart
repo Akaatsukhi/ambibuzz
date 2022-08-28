@@ -109,6 +109,8 @@ class _TaskScreenState extends State<TaskScreen> {
                         flex: 6,
                         child: TextFormField(
                             autofocus: true,
+                            decoration: const InputDecoration(
+                                labelText: 'Enter the Task'),
                             focusNode: myFocus,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
