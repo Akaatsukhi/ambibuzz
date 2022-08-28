@@ -76,9 +76,6 @@ class MySearchDelegate extends SearchDelegate {
         //     [fetchDogBreed.getDogBreed(query: query), fetchDogBreed.dog()]),
         future: fetchDogBreed.dog(query),
         builder: (context, snapshot) {
-          // var data = snapshot.data!.first as List<DogBreed>;
-          // var data2 = snapshot.data!.last as List<DogImage>;
-          // When received data is empty.
           final data = snapshot.data;
           if (snapshot.hasData && data!.dogbreed.isEmpty) {
             return const Center(
