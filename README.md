@@ -16,9 +16,9 @@ The task organizer is a basic tracking application that help in tracking  your d
 
 ### Screenshots
 
-<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013532221744873673/Screenshot_2022-08-29-01-04-59-244_com.example.ambibuzz.png" alt="img" style="zoom:33%;" />
+<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013532221744873673/Screenshot_2022-08-29-01-04-59-244_com.example.ambibuzz.png" alt="img" width= "300"  />
 
-<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013532040890687598/Screenshot_2022-08-29-01-03-40-127_com.example.ambibuzz.png" alt="img" style="zoom:33%;" />
+<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013532040890687598/Screenshot_2022-08-29-01-03-40-127_com.example.ambibuzz.png" alt="img" width= "300"  />
 
 
 
@@ -43,9 +43,9 @@ The Dog world is a basic searching application where you can search dogs by bree
 
 ### Screenshots
 
-<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013526305305808926/Screenshot_2022-08-29-00-17-03-326_com.example.ambibuzz.png" alt="img" style="zoom: 33%;" />
+<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013526305305808926/Screenshot_2022-08-29-00-17-03-326_com.example.ambibuzz.png" alt="img" width= "300"/>
 
-<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013526305662312588/Screenshot_2022-08-29-00-17-00-516_com.example.ambibuzz.png" alt="img" style="zoom:33%;" />
+<img src="https://cdn.discordapp.com/attachments/982036139953238069/1013526305662312588/Screenshot_2022-08-29-00-17-00-516_com.example.ambibuzz.png" alt="img"  width= "300"/>
 
 
 
