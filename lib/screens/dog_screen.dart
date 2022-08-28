@@ -29,7 +29,7 @@ class _DogScreenState extends State<DogScreen> {
 }
 
 class MySearchDelegate extends SearchDelegate {
-  final fetchDogData = FetchDogData();
+  final fetchDogBreed = FetchDogData();
 
   @override
   // Leading Widget on Appbar which handle logic of Navigating back.
@@ -70,14 +70,17 @@ class MySearchDelegate extends SearchDelegate {
   // Suggestions shown in the body of the search page while the user types a query into the search field.
   Widget buildSuggestions(BuildContext context) {
     // Show the result only if user type the character more then 3.
-    if (query.length > 2) {
-      return FutureBuilder<List<DogData>>(
-        future: fetchDogData.getDogData(query: query),
+    if (query.length > 3) {
+      return FutureBuilder<DogData>(
+        // future: Future.wait(
+        //     [fetchDogBreed.getDogBreed(query: query), fetchDogBreed.dog()]),
+        future: fetchDogBreed.dog(query),
         builder: (context, snapshot) {
-          var data = snapshot.data;
-
+          // var data = snapshot.data!.first as List<DogBreed>;
+          // var data2 = snapshot.data!.last as List<DogImage>;
           // When received data is empty.
-          if (snapshot.hasData && data!.isEmpty) {
+          final data = snapshot.data;
+          if (snapshot.hasData && data!.dogbreed.isEmpty) {
             return const Center(
                 child: Text('Unable to find dog with this name'));
           }
@@ -86,31 +89,28 @@ class MySearchDelegate extends SearchDelegate {
             return ListView.builder(
                 // if length of the result is greater than it show the 6 result
                 // to prevent the rate limiter.
-                itemCount: data!.length,
+                itemCount: data!.dogbreed.length,
                 itemBuilder: (context, index) {
-                  final suggestion = data[index];
-
                   return SizedBox(
                     height: MediaQuery.of(context).size.height / 3,
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        // Show the images of Dogs.
-                        child: Image.network(
-                          suggestion.imageUrl!.imageUrl,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            // Show the dog breed name until image are loaded.
-                            return Center(
-                                child: Text(
-                              suggestion.dogBreedName,
-                              textScaleFactor: 1.5,
-                            ));
-                          },
-                        ),
-                      ),
+                          borderRadius: BorderRadius.circular(8),
+                          // Show the images of Dogs.
+                          child: Image.network(
+                            data.dogImage[index].imageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              // Show the dog breed name until image are loaded.
+                              return Center(
+                                  child: Text(
+                                data.dogbreed[index].dogBreedName,
+                                textScaleFactor: 1.5,
+                              ));
+                            },
+                          )),
                     ),
                   );
                 });
@@ -138,8 +138,41 @@ class MySearchDelegate extends SearchDelegate {
 
 // Class for to networking such fetching relate Work.
 class FetchDogData {
+  Future<DogData> dog(String? query) async {
+    final uid = await getDogBreed(query: query);
+    var future = uid.map((e) {
+      return dogImage(e.id);
+    });
+
+    return DogData(dogbreed: uid, dogImage: await Future.wait(future));
+  }
+
+  Future<DogImage> dogImage(int id) async {
+    final res = await http.get(
+        Uri.parse(
+            'https://api.thedogapi.com/v1/images/search?breed_id=$id&limit=6'),
+        headers: {
+          'x-api-key':
+              'live_m1Di7hdd23gFNTj5aPxsyXxWH6aBgqAl0rEABK8aiJyQ2eFkccCZ9aqKCrL7kg6d'
+        });
+    if (res.statusCode == 200) {
+      final List data = jsonDecode(res.body);
+
+      if (data.isNotEmpty) {
+        return DogImage.fromJson(data[0]);
+      } else {
+        return DogImage(
+            imageUrl:
+                'https://www.thermaxglobal.com/wp-content/uploads/2020/05/image-not-found-300x169.jpg');
+      }
+      // bull
+    } else {
+      throw Exception();
+    }
+  }
+
   // Future which return data reagarding dog such as bread name and image url.
-  Future<List<DogData>> getDogData({String? query}) async {
+  Future<List<DogBreed>> getDogBreed({String? query}) async {
     final response = await http.get(
         Uri.parse('https://api.thedogapi.com/v1/breeds/search?q=$query'),
         headers: {
@@ -152,31 +185,11 @@ class FetchDogData {
       final List data = jsonDecode(response.body);
 
       // print(data);
-      // convert the JSON Map into an List of DogData using the fromJson() factory method.
+      // convert the JSON Map into an List of DogBreed using the fromJson() factory method.
       final result = data.map((e) {
-        return DogData.fromJson(json: e);
+        return DogBreed.fromJson(json: e);
       }).toList();
 
-      // Fetching images corresponding to breedname with help of id
-      // since the search by breed doesn't have the `url` property.
-      for (var element in result) {
-        final res = await http.get(
-            Uri.parse(
-                'https://api.thedogapi.com/v1/images/search?breed_id=${element.id}'),
-            headers: {
-              'x-api-key':
-                  'live_m1Di7hdd23gFNTj5aPxsyXxWH6aBgqAl0rEABK8aiJyQ2eFkccCZ9aqKCrL7kg6d'
-            });
-        if (res.statusCode == 200) {
-          element.imageUrl = DogImage.fromJson(jsonDecode(res.body)[0]);
-        } else {
-          throw Exception();
-        }
-      }
-
-      // Logic for search when use type query. If typed query is not null then it been checked coresponding the
-      // result we get from api call. And if result conatins the query which been typed
-      // then return the result accordingly.
       if (query != null) {
         return result
             .where((element) => element.dogBreedName
@@ -188,31 +201,42 @@ class FetchDogData {
     } else {
       // If server not return the a 200 OK response,
       // then throw  a exception.
-      throw Exception('Failed to load the DogData');
+      throw Exception('Failed to load the DogBreed');
     }
   }
 }
 
+// Information related to Dog
+// Such that it hold dog image  and dogbreed
+class DogData {
+  final List<DogBreed> dogbreed;
+  final List<DogImage> dogImage;
+  DogData({required this.dogbreed, required this.dogImage});
+}
+
 // class hold data field of json call.
 // or json modal  classes.
-class DogData {
+// Information realted to dog breed name and breed id.
+// which is help in find out the image correspond to it.
+class DogBreed {
   final int id;
   final String dogBreedName;
   DogImage? imageUrl;
 
-  DogData({
+  DogBreed({
     required this.id,
     required this.dogBreedName,
   });
 
-  factory DogData.fromJson({required Map<String, dynamic> json}) {
-    return DogData(
+  factory DogBreed.fromJson({required Map<String, dynamic> json}) {
+    return DogBreed(
       id: json['id'],
       dogBreedName: json['name'],
     );
   }
 }
 
+// Dog image which obtain breed id.
 class DogImage {
   final String imageUrl;
 
