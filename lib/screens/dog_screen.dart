@@ -74,7 +74,7 @@ class MySearchDelegate extends SearchDelegate {
       return FutureBuilder<DogData>(
         // future: Future.wait(
         //     [fetchDogBreed.getDogBreed(query: query), fetchDogBreed.dog()]),
-        future: fetchDogBreed.dog(query),
+        future: fetchDogBreed.dogData(query),
         builder: (context, snapshot) {
           final data = snapshot.data;
           if (snapshot.hasData && data!.dogbreed.isEmpty) {
@@ -135,7 +135,7 @@ class MySearchDelegate extends SearchDelegate {
 
 // Class for to networking such fetching relate Work.
 class FetchDogData {
-  Future<DogData> dog(String? query) async {
+  Future<DogData> dogData(String? query) async {
     final uid = await getDogBreed(query: query);
     var future = uid.map((e) {
       return dogImage(e.id);
@@ -218,7 +218,6 @@ class DogData {
 class DogBreed {
   final int id;
   final String dogBreedName;
-  DogImage? imageUrl;
 
   DogBreed({
     required this.id,
