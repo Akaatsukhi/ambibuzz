@@ -29,7 +29,7 @@ class _DogScreenState extends State<DogScreen> {
 }
 
 class MySearchDelegate extends SearchDelegate {
-  final fetchDogBreed = FetchDogData();
+  final fetchDogData = FetchDogData();
 
   @override
   // Leading Widget on Appbar which handle logic of Navigating back.
@@ -71,47 +71,30 @@ class MySearchDelegate extends SearchDelegate {
   Widget buildSuggestions(BuildContext context) {
     // Show the result only if user type the character more then 3.
     if (query.length > 3) {
-      return FutureBuilder<DogData>(
-        // future: Future.wait(
-        //     [fetchDogBreed.getDogBreed(query: query), fetchDogBreed.dog()]),
-        future: fetchDogBreed.dogData(query),
+      return FutureBuilder<List<DogBreed>>(
+        future: fetchDogData.getDogBreed(query: query),
         builder: (context, snapshot) {
-          final data = snapshot.data;
-          if (snapshot.hasData && data!.dogbreed.isEmpty) {
-            return const Center(
-                child: Text('Unable to find dog with this name'));
+          // If snapshot hasData but data is empty
+          // In case where there is no breed of dog.
+          if (snapshot.hasData && snapshot.data!.isEmpty) {
+            return Center(
+              child:
+                  Text('Unable to find dog with this name : ${snapshot.data}'),
+            );
           }
 
           if (snapshot.hasData) {
+            // Data of DogBreed.
+            final data = snapshot.data;
+
             return ListView.builder(
-                // if length of the result is greater than it show the 6 result
-                // to prevent the rate limiter.
-                itemCount: data!.dogbreed.length,
+                itemCount: data!.length,
                 itemBuilder: (context, index) {
-                  return SizedBox(
-                    height: MediaQuery.of(context).size.height / 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          // Show the images of Dogs.
-                          child: Image.network(
-                            data.dogImage[index].imageUrl,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              // Show the dog breed name until image are loaded.
-                              return Center(
-                                  child: Text(
-                                data.dogbreed[index].dogBreedName,
-                                textScaleFactor: 1.5,
-                              ));
-                            },
-                          )),
-                    ),
-                  );
+                  return DogWidget(
+                      fetchDogData: fetchDogData, data: data, index: index);
                 });
           }
+
           if (snapshot.hasError) {
             return Center(child: Text(snapshot.error.toString()));
           }
@@ -133,15 +116,90 @@ class MySearchDelegate extends SearchDelegate {
   }
 }
 
-// Class for to networking such fetching relate Work.
+/// Dog Widget reponsible for displayig the dog image in the listview.
+/// And prior to that it relay on parent Future builder which provide
+/// breed data such as [breed_id] and [breed_name] and once snapshot.hadData
+/// It will display the `DogWidget`  correspomding to `breed_id` and
+/// will display the list image when snapshot is ready.
+/// It has two main parameter  [fetchDogData] --> object which hold method for fetch Image from breed_id.
+/// [data] --> Breed related Data which been fetched from above parent FutureBuilder.
+class DogWidget extends StatefulWidget {
+  const DogWidget({
+    Key? key,
+    required this.fetchDogData,
+    required this.data,
+    required this.index,
+  }) : super(key: key);
+
+  // FetchDogData class object hold method for fetching breed_name and breed Images.
+  final FetchDogData fetchDogData;
+
+  // List Dogbreed which hold  property beed_id and beed_name.
+  final List<DogBreed>? data;
+
+  // index value from parent listView builder.
+  final int index;
+
+  @override
+  State<DogWidget> createState() => _DogWidgetState();
+}
+
+class _DogWidgetState extends State<DogWidget>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    return SizedBox(
+      height: MediaQuery.of(context).size.height / 3,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          // Show the images of Dogs.
+          child: FutureBuilder<DogImage>(
+            future: widget.fetchDogData.dogImage(widget.data![widget.index].id),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Image.network(
+                  snapshot.data!.imageUrl,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                        child: Center(
+                      child: CircularProgressIndicator(),
+                    ));
+                  },
+                );
+              }
+
+              return Center(
+                child: Text(
+                  widget.data![widget.index].dogBreedName,
+                  textScaleFactor: 1.3,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+}
+
+// Class for to networking such fetching Data related Dog's.
 class FetchDogData {
-  Future<DogData> dogData(String? query) async {
-    final uid = await getDogBreed(query: query);
-    var future = uid.map((e) {
+  Future<List<DogImage>> dogData(List<DogBreed> dogData) async {
+    var future = dogData.map((e) {
       return dogImage(e.id);
     });
 
-    return DogData(dogbreed: uid, dogImage: await Future.wait(future));
+    // return DogData(dogbreed: uid, dogImage: await Future.wait(future));
+    return Future.wait(future);
   }
 
   Future<DogImage> dogImage(int id) async {
@@ -181,7 +239,6 @@ class FetchDogData {
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
 
-      // print(data);
       // convert the JSON Map into an List of DogBreed using the fromJson() factory method.
       final result = data.map((e) {
         return DogBreed.fromJson(json: e);
@@ -203,18 +260,6 @@ class FetchDogData {
   }
 }
 
-// Information related to Dog
-// Such that it hold dog image  and dogbreed
-class DogData {
-  final List<DogBreed> dogbreed;
-  final List<DogImage> dogImage;
-  DogData({required this.dogbreed, required this.dogImage});
-}
-
-// class hold data field of json call.
-// or json modal  classes.
-// Information realted to dog breed name and breed id.
-// which is help in find out the image correspond to it.
 class DogBreed {
   final int id;
   final String dogBreedName;
@@ -232,14 +277,12 @@ class DogBreed {
   }
 }
 
-// Dog image which obtain breed id.
+// Class hold Data realted to Dod image which can be obtained from breed_id.
 class DogImage {
   final String imageUrl;
 
   DogImage({required this.imageUrl});
   factory DogImage.fromJson(Map<String, dynamic> json) {
-    return DogImage(
-        imageUrl: json['url'] ??
-            'https://wellesleysocietyofartists.org/wp-content/uploads/2015/11/image-not-found.jpg');
+    return DogImage(imageUrl: json['url']);
   }
 }
